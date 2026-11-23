@@ -121,7 +121,7 @@ textarea {
   height: 16.7%;
 }
 .slab.two {
-  top: 58.3%;
+  top: 63%;
 }
 .slab img {
   width: 100%;
@@ -284,10 +284,10 @@ textarea {
   border: 0;
   background: none;
   padding: 0;
-  top: 16%;
+  top: 20%;
   left: 50%;
   transform: translateX(-50%);
-  width: min(48vw, 76.7vh); 
+  width: min(48vw, 80vh); 
 }
 .radio img {
   width: 100%;
