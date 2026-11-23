@@ -1,0 +1,485 @@
+body {
+  font-family: "kuhlman-vf", sans-serif;
+  font-variation-settings:
+    "SEED" 0,
+    "wdth" 100;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  background: #111;
+  overflow: hidden; /* no page scrollbars */
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* fills the browser window; the canvas sits inside it. */
+.stage {
+  position: fixed;
+  inset: 0;
+}
+
+/* color themes */
+.canvas[data-theme="blue"] {
+  --wall: #124559;
+  --title: #01161e;
+  --remote-a: #00384e;
+  --remote-b: #01161e;
+  --btn-a: #eff6e0;
+  --btn-b: #8fa991;
+  --btn-edge: #598392;
+  --btn-ink: #01161e;
+  --panel-a: #8fa991;
+  --panel-b: #3c5040;
+  --panel-inner: #eff6e0;
+  --list-ink: #01161e;
+}
+.canvas[data-theme="pink"] {
+  --wall: #f4acb7;
+  --title: #7d547b;
+  --remote-a: #9eb5a7;
+  --remote-b: #97b7a4;
+  --btn-a: #ffe5d9;
+  --btn-b: #ebbca6;
+  --btn-edge: #7d547b;
+  --btn-ink: #372236;
+  --panel-a: #97b7a4;
+  --panel-b: #547260;
+  --panel-inner: #ffcad4;
+  --list-ink: #372236;
+}
+.canvas[data-theme="moss"] {
+  --wall: #4d6b57;
+  --title: #12190f;
+  --remote-a: #c28f5b;
+  --remote-b: #8a5f35;
+  --btn-a: #f3e3c9;
+  --btn-b: #d9bf96;
+  --btn-edge: #7a5630;
+  --btn-ink: #2e1d0e;
+  --panel-a: #8a5f35;
+  --panel-b: #55371a;
+  --panel-inner: #3b4f3f;
+  --list-ink: #f3ecdc;
+}
+.canvas[data-theme="gothic"] {
+  --wall: #0a0908;
+  --title: #a9927d;
+  --remote-a: #7a1529;
+  --remote-b: #49111c;
+  --btn-a: #a9927d;
+  --btn-b: #5e503f;
+  --btn-edge: #3a0711;
+  --btn-ink: #120104;
+  --panel-a: #611726;
+  --panel-b: #49111c;
+  --panel-inner: #5e503f;
+  --list-ink: #120104;
+}
+
+/* the room (fills the window) */
+.canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+/* everything directly inside the canvas is placed with left/top/width/height. */
+.canvas > * {
+  position: absolute;
+}
+
+.wall,
+.slab,
+.title,
+.plant,
+.lamp {
+  pointer-events: none;
+}
+
+.wall {
+  inset: 0; /* covers the whole canvas */
+  background: var(--wall);
+  transition: background 0.4s;
+}
+
+/* the two wide display slabs (shelves). */
+.slab {
+  left: 0;
+  top: 86.1%;
+  width: 100%;
+  height: 16.7%;
+}
+.slab.two {
+  top: 58.3%;
+}
+.slab img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.title {
+  top: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-size: clamp(48px, 6vw, 128px); /* grows and shrinks with the window width */
+  letter-spacing: 3px;
+  /* word-spacing: -3px; */
+  line-height: 1;
+  text-align: center;
+  color: var(--title);
+  text-shadow: 6px 6px 8px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+}
+
+/* remote */
+.remote {
+  left: 1.95%;
+  top: 2.8%;
+  width: 226px;
+  /* padding: 14px; */
+  padding: 16px;
+  border-radius: 28px 28px 22px 22px;
+  background: linear-gradient(160deg, var(--remote-a), var(--remote-b));
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.35),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    0 12px 24px rgba(0, 0, 0, 0.45);
+  z-index: 6;
+  transition: background 0.4s;
+}
+.remote-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+.control-btn {
+  min-height: 46px;
+  padding: 6px 3px;
+  border: 0;
+  border-radius: 11px;
+  font-size: 13px;
+  line-height: 1.15;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--btn-ink);
+  background: linear-gradient(var(--btn-a), var(--btn-b));
+  box-shadow:
+    0 4px 0 var(--btn-edge),
+    0 6px 8px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.06s,
+    box-shadow 0.06s;
+}
+/* pressed: sink down and shrink the shadow */
+.control-btn:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 var(--btn-edge),
+    0 2px 4px rgba(0, 0, 0, 0.35);
+}
+.control-btn:focus-visible {
+  outline: 3px solid #fff; /* shows when you tab to it with the keyboard */
+  outline-offset: 2px;
+}
+
+/* poster wall */
+.poster-wall {
+  left: 1.95%;
+  top: max(21.9%, 160px);
+  width: min(32.6vw, 52.1vh);
+  aspect-ratio: 469 / 500;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 10px;
+  z-index: 1;
+}
+.poster-slot {
+  position: relative;
+  min-height: 0;
+}
+
+/* empty frame */
+.poster-slot.empty {
+  border: 2px dashed rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* filled frame */
+.poster-slot.filled img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+
+/* the × that removes a poster: hidden until you hover the frame */
+.poster-clear {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.poster-slot:hover .poster-clear,
+.poster-clear:focus-visible {
+  opacity: 1;
+}
+
+/* plant, lamp and radio */
+.plant {
+  left: 5%;
+  bottom: 3.1%;
+  height: 38.9vh;
+  z-index: 5;
+}
+.plant img {
+  height: 100%;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.lamp {
+  right: 13%;
+  top: -3vh;
+  height: 25vh;
+  z-index: 10;
+}
+.lamp img {
+  height: 100%;
+  width: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.radio {
+  z-index: 4;
+  border: 0;
+  background: none;
+  padding: 0;
+  top: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(48vw, 76.7vh); 
+}
+.radio img {
+  width: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* queue panel (the song list and the search box) */
+.queue-panel {
+  right: 5.2%;
+  top: 20%;
+  width: 225px;
+  height: 72%;
+  z-index: 5;
+  padding: 18px 22px 20px;
+  display: flex;
+  flex-direction: column; /* heading, search box, list, skip button: stacked top to bottom */
+  gap: 12px;
+  background: linear-gradient(160deg, var(--panel-a), var(--panel-b));
+  border-radius: 6px;
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.35),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.3),
+    0 12px 24px rgba(0, 0, 0, 0.45);
+  transition: background 0.4s;
+}
+.queue-header {
+  margin: 0;
+  font-size: 22px;
+  text-align: center;
+  color: var(--title);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* the search box */
+.queue-search {
+  position: relative; /* so the × can sit inside the box */
+}
+.queue-search input {
+  width: 100%;
+  padding: 9px 30px 9px 11px;
+  font-size: 15px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1b1426;
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.2);
+}
+.queue-search input::placeholder {
+  color: rgba(27, 20, 38, 0.55);
+}
+.queue-search input:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 1px;
+}
+.queue-search-clear {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* the list area: shows the queue, or search results while you type */
+.queue-list {
+  flex: 1; /* take all the space between the search box and the skip button */
+  margin: 0;
+  padding: 12px;
+  list-style: none;
+  overflow-y: auto; /* scroll if there are many songs */
+  background: var(--panel-inner);
+  color: var(--list-ink);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background 0.4s;
+}
+.queue-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 15px;
+  line-height: 1.2;
+  word-break: break-word;
+}
+.queue-item.now {
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.35);
+}
+.queue-tag {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #ff9d9d;
+}
+.queue-title {
+  font-weight: 700;
+}
+.queue-artist {
+  opacity: 0.8;
+  font-size: 13px;
+}
+.queue-empty {
+  font-size: 14px;
+  opacity: 0.75;
+  line-height: 1.3;
+}
+.queue-note {
+  font-size: 14px;
+  opacity: 0.8;
+  line-height: 1.3;
+}
+
+/* one search result row */
+.search-result {
+  width: 100%;
+  padding: 5px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--list-ink);
+  transition: background 0.12s;
+}
+.search-result:hover,
+.search-result:focus-visible {
+  background: rgba(255, 255, 255, 0.28);
+  outline: none;
+}
+.search-result img {
+  border-radius: 4px;
+  flex: none; /* don't let the artwork shrink */
+}
+.search-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0; /* lets long titles shrink and get the "..." */
+  font-size: 13px;
+  line-height: 1.2;
+}
+.search-text b,
+.search-text i {
+  overflow: hidden;
+  text-overflow: ellipsis; /* long text ends in ... */
+  white-space: nowrap;
+  font-style: normal;
+}
+.search-text i {
+  opacity: 0.75;
+  font-size: 11px;
+}
+
+.text-add:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.queue-skip {
+  padding: 8px;
+  border: 0;
+  border-radius: 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--btn-ink);
+  background: linear-gradient(var(--btn-a), var(--btn-b));
+  box-shadow: 0 3px 0 var(--btn-edge);
+}
+.queue-skip:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--btn-edge);
+}
+
+/* shown in the top-right corner while the server is unreachable */
+.offline {
+  right: 16px;
+  top: 16px;
+  z-index: 30;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  font-size: 14px;
+}
